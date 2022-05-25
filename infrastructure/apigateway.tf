@@ -25,12 +25,28 @@ resource "aws_api_gateway_method" "get_convert" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_method_response" "get_ok" {
-  # tell api gateway to return 200 for get requests
+resource "aws_api_gateway_integration" "lambda" {
+  # tell api gateway how to invoke lambda
+  rest_api_id             = aws_api_gateway_rest_api.apigw.id
+  resource_id             = aws_api_gateway_resource.convert.id
+  http_method             = aws_api_gateway_method.get_convert.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.retrieval.invoke_arn
+}
+
+resource "aws_api_gateway_deployment" "deployment" {
+  # create snapshot of gateway config for live deployment
   rest_api_id = aws_api_gateway_rest_api.apigw.id
-  resource_id = aws_api_gateway_resource.convert.id
-  http_method = aws_api_gateway_method.get_convert.http_method
-  status_code = "200"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    aws_api_gateway_method.get_convert,
+    aws_api_gateway_method.post_convert,
+  ]
 }
 
 resource "aws_api_gateway_method" "post_convert" {
@@ -41,12 +57,27 @@ resource "aws_api_gateway_method" "post_convert" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_method_response" "post_ok" {
-  # tell api gateway to return 201 for post requests
+resource "aws_api_gateway_method_response" "post_codes" {
+  # tell api gateway to these status codes for post requests
+  for_each    = toset(["201", "400", "500"])
   rest_api_id = aws_api_gateway_rest_api.apigw.id
   resource_id = aws_api_gateway_resource.convert.id
   http_method = aws_api_gateway_method.post_convert.http_method
-  status_code = "201"
+  status_code = each.value
+}
+
+resource "aws_api_gateway_integration_response" "post_responses" {
+  # tell api gateway to funnel all 2xx, 4xx, 5xx into 201, 400, 500 responses above
+  for_each          = aws_api_gateway_method_response.post_codes
+  rest_api_id       = aws_api_gateway_rest_api.apigw.id
+  resource_id       = aws_api_gateway_resource.convert.id
+  http_method       = each.value.http_method
+  status_code       = each.value.status_code
+  selection_pattern = "${substr(each.value.status_code, 0, 1)}[0-9]{2}"
+
+  depends_on = [
+    aws_api_gateway_integration.lambda
+  ]
 }
 
 resource "aws_api_gateway_integration" "sqs" {
@@ -65,53 +96,6 @@ resource "aws_api_gateway_integration" "sqs" {
 
   request_templates = {
     "application/json" = "Action=SendMessage&MessageBody=$input.body"
-  }
-}
-
-resource "aws_api_gateway_integration_response" "get_ok" {
-  # treat all 2xx responses from sqs as 200 ok for api gateway
-  rest_api_id       = aws_api_gateway_rest_api.apigw.id
-  resource_id       = aws_api_gateway_rest_api.apigw.root_resource_id
-  http_method       = aws_api_gateway_method.get_convert.http_method
-  status_code       = aws_api_gateway_method_response.get_ok.status_code
-  selection_pattern = "^2[0-9][0-9]"
-
-  depends_on = [
-    aws_api_gateway_integration.sqs,
-    aws_api_gateway_method.post_convert,
-  ]
-}
-
-resource "aws_api_gateway_integration" "lambda" {
-  # tell api gateway how to invoke lambda
-  rest_api_id             = aws_api_gateway_rest_api.apigw.id
-  resource_id             = aws_api_gateway_resource.convert.id
-  http_method             = aws_api_gateway_method.get_convert.http_method
-  integration_http_method = "POST"
-  type                    = "AWS"
-  uri                     = aws_lambda_function.retrieval.invoke_arn
-}
-
-resource "aws_api_gateway_integration_response" "post_ok" {
-  # treat all 2xx responses from lambda as 200 ok for api gateway
-  rest_api_id       = aws_api_gateway_rest_api.apigw.id
-  resource_id       = aws_api_gateway_rest_api.apigw.root_resource_id
-  http_method       = aws_api_gateway_method.post_convert.http_method
-  status_code       = aws_api_gateway_method_response.post_ok.status_code
-  selection_pattern = "^2[0-9][0-9]"
-
-  depends_on = [
-    aws_api_gateway_integration.lambda,
-    aws_api_gateway_method.get_convert,
-  ]
-}
-
-resource "aws_api_gateway_deployment" "deployment" {
-  # create snapshot of gateway config for live deployment
-  rest_api_id = aws_api_gateway_rest_api.apigw.id
-
-  lifecycle {
-    create_before_destroy = true
   }
 }
 

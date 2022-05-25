@@ -10,11 +10,11 @@ resource "aws_lambda_function" "converter" {
   runtime       = "python3.8"
 }
 
-# resource "aws_lambda_event_source_mapping" "sqs" {
-#   # tell converter lambda to be invoked by sqs messages
-#   event_source_arn = aws_sqs_queue.job_queue.arn
-#   function_name    = aws_lambda_function.converter.arn
-# }
+resource "aws_lambda_event_source_mapping" "sqs" {
+  # tell converter lambda to be invoked by sqs messages
+  event_source_arn = aws_sqs_queue.job_queue.arn
+  function_name    = aws_lambda_function.converter.arn
+}
 
 resource "aws_iam_role" "converter" {
   # create iam role for converter lambda to assume
@@ -42,12 +42,10 @@ resource "aws_iam_role_policy" "converter_logs" {
     Statement = [
       {
         Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
+          "logs:*",
         ]
         Effect   = "Allow"
-        Resource = "${aws_cloudwatch_log_group.converter.arn}"
+        Resource = "*"
       }
     ]
   })
@@ -64,6 +62,7 @@ resource "aws_iam_role_policy" "converter_sqs" {
         Action = [
           "sqs:ReceiveMessage",
           "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
         ]
         Effect   = "Allow"
         Resource = "${aws_sqs_queue.job_queue.arn}"
@@ -93,10 +92,12 @@ resource "aws_iam_role_policy" "converter_s3" {
   })
 }
 
-resource "aws_cloudwatch_log_group" "converter" {
-  # create log group for converter lambda
-  name              = "/aws/lambda/${aws_lambda_function.converter.function_name}"
-  retention_in_days = 1
+resource "aws_lambda_permission" "converter" {
+  # tell converter lambda it can be invoked by sqs
+  statement_id  = "AllowSQSInvocation"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.converter.function_name
+  principal     = "sqs.amazonaws.com"
 }
 
 
@@ -138,12 +139,10 @@ resource "aws_iam_role_policy" "retrieval_logs" {
     Statement = [
       {
         Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
+          "logs:*",
         ]
         Effect   = "Allow"
-        Resource = "${aws_cloudwatch_log_group.retrieval.arn}"
+        Resource = "*"
       }
     ]
   })
@@ -170,8 +169,10 @@ resource "aws_iam_role_policy" "retrieval_s3" {
   })
 }
 
-resource "aws_cloudwatch_log_group" "retrieval" {
-  # create log group for retrieval lambda
-  name              = "/aws/lambda/${aws_lambda_function.retrieval.function_name}"
-  retention_in_days = 1
+resource "aws_lambda_permission" "retrieval" {
+  # tell retrieval lambda it can be invoked by api gateway
+  statement_id  = "AllowAPIGatewayInvocation"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.retrieval.function_name
+  principal     = "apigateway.amazonaws.com"
 }
