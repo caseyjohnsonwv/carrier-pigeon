@@ -35,20 +35,6 @@ resource "aws_api_gateway_integration" "lambda" {
   uri                     = aws_lambda_function.retrieval.invoke_arn
 }
 
-resource "aws_api_gateway_deployment" "deployment" {
-  # create snapshot of gateway config for live deployment
-  rest_api_id = aws_api_gateway_rest_api.apigw.id
-
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  depends_on = [
-    aws_api_gateway_method.get_convert,
-    aws_api_gateway_method.post_convert,
-  ]
-}
-
 resource "aws_api_gateway_method" "post_convert" {
   # create post method for /convert
   rest_api_id   = aws_api_gateway_rest_api.apigw.id
@@ -76,7 +62,7 @@ resource "aws_api_gateway_integration_response" "post_responses" {
   selection_pattern = "${substr(each.value.status_code, 0, 1)}[0-9]{2}"
 
   depends_on = [
-    aws_api_gateway_integration.lambda
+    aws_api_gateway_integration.sqs,
   ]
 }
 
@@ -97,6 +83,25 @@ resource "aws_api_gateway_integration" "sqs" {
   request_templates = {
     "application/json" = "Action=SendMessage&MessageBody=$input.body"
   }
+}
+
+resource "aws_api_gateway_deployment" "deployment" {
+  # create snapshot of gateway config for live deployment
+  rest_api_id = aws_api_gateway_rest_api.apigw.id
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    # post requests
+    aws_api_gateway_integration.sqs,
+    aws_api_gateway_method.post_convert,
+    aws_api_gateway_integration_response.post_responses,
+    # get requests
+    aws_api_gateway_integration.lambda,
+    aws_api_gateway_method.get_convert,
+  ]
 }
 
 resource "aws_api_gateway_stage" "stage" {

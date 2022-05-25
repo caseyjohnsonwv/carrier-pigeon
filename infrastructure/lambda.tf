@@ -8,6 +8,12 @@ resource "aws_lambda_function" "converter" {
   role          = aws_iam_role.converter.arn
   handler       = "main.lambda_handler"
   runtime       = "python3.8"
+
+  environment {
+    variables = {
+      s3_bucket_name = "${aws_s3_bucket.playlists.bucket}"
+    }
+  }
 }
 
 resource "aws_lambda_event_source_mapping" "sqs" {
@@ -111,6 +117,12 @@ resource "aws_lambda_function" "retrieval" {
   role          = aws_iam_role.retrieval.arn
   handler       = "main.lambda_handler"
   runtime       = "python3.8"
+
+  environment {
+    variables = {
+      s3_bucket_name = "${aws_s3_bucket.playlists.bucket}"
+    }
+  }
 }
 
 resource "aws_iam_role" "retrieval" {
