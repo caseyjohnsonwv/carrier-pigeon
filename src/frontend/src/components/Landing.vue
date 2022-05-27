@@ -2,7 +2,7 @@
   <div class="playlist-input">
     <div class="heading">
       <img src="../assets/bird.svg">
-      <h1>Carrier Pigeon</h1>
+      <h1>Playlist Pigeon</h1>
       <p>Because sharing playlists between Apple Music and Spotify... is a lot like sending a carrier pigeon.</p>
     </div>
     <div class="user-form">
@@ -12,7 +12,7 @@
       <button type="submit" id="convert-button">Convert</button>
     </div>
     <div class="info">
-      <a href="https://github.com/caseyjohnsonwv/carrier-pigeon/">Project source code</a>
+      <a href="https://github.com/caseyjohnsonwv/playlist-pigeon/">Project source code</a>
     </div>
   </div>
 </template>

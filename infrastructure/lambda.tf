@@ -4,7 +4,7 @@
 resource "aws_lambda_function" "converter" {
   # create lambda function for actual conversion logic
   filename      = "${path.root}/../src/backend/converter_lambda.zip"
-  function_name = "carrier-pigeon-converter-lambda-${var.env_name}"
+  function_name = "playlist-pigeon-converter-lambda-${var.env_name}"
   role          = aws_iam_role.converter.arn
   handler       = "main.lambda_handler"
   runtime       = "python3.8"
@@ -24,7 +24,7 @@ resource "aws_lambda_event_source_mapping" "sqs" {
 
 resource "aws_iam_role" "converter" {
   # create iam role for converter lambda to assume
-  name = "carrier-pigeon-converter-lambda-${var.env_name}"
+  name = "playlist-pigeon-converter-lambda-${var.env_name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -41,7 +41,7 @@ resource "aws_iam_role" "converter" {
 
 resource "aws_iam_role_policy" "converter_logs" {
   # create iam policy for converter lambda to write to logs
-  name = "carrier-pigeon-converter-lambda-logs-${var.env_name}"
+  name = "playlist-pigeon-converter-lambda-logs-${var.env_name}"
   role = aws_iam_role.converter.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -59,7 +59,7 @@ resource "aws_iam_role_policy" "converter_logs" {
 
 resource "aws_iam_role_policy" "converter_sqs" {
   # create iam policy for converter lambda to poll sqs
-  name = "carrier-pigeon-converter-lambda-sqs-${var.env_name}"
+  name = "playlist-pigeon-converter-lambda-sqs-${var.env_name}"
   role = aws_iam_role.converter.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -79,7 +79,7 @@ resource "aws_iam_role_policy" "converter_sqs" {
 
 resource "aws_iam_role_policy" "converter_s3" {
   # create iam policy for converter lambda to upload to s3
-  name = "carrier-pigeon-converter-lambda-s3-${var.env_name}"
+  name = "playlist-pigeon-converter-lambda-s3-${var.env_name}"
   role = aws_iam_role.converter.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -113,7 +113,7 @@ resource "aws_lambda_permission" "converter" {
 resource "aws_lambda_function" "retrieval" {
   # create lambda function for actual conversion logic
   filename      = "${path.root}/../src/backend/retrieval_lambda.zip"
-  function_name = "carrier-pigeon-retrieval-lambda-${var.env_name}"
+  function_name = "playlist-pigeon-retrieval-lambda-${var.env_name}"
   role          = aws_iam_role.retrieval.arn
   handler       = "main.lambda_handler"
   runtime       = "python3.8"
@@ -127,7 +127,7 @@ resource "aws_lambda_function" "retrieval" {
 
 resource "aws_iam_role" "retrieval" {
   # create iam role for retrieval lambda to assume
-  name = "carrier-pigeon-retrieval-lambda-${var.env_name}"
+  name = "playlist-pigeon-retrieval-lambda-${var.env_name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -144,7 +144,7 @@ resource "aws_iam_role" "retrieval" {
 
 resource "aws_iam_role_policy" "retrieval_logs" {
   # create iam policy for retrieval lambda to write to logs
-  name = "carrier-pigeon-retrieval-lambda-logs-${var.env_name}"
+  name = "playlist-pigeon-retrieval-lambda-logs-${var.env_name}"
   role = aws_iam_role.retrieval.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -162,7 +162,7 @@ resource "aws_iam_role_policy" "retrieval_logs" {
 
 resource "aws_iam_role_policy" "retrieval_s3" {
   # create iam policy for retrieval lambda to read from s3
-  name = "carrier-pigeon-retrieval-lambda-s3-${var.env_name}"
+  name = "playlist-pigeon-retrieval-lambda-s3-${var.env_name}"
   role = aws_iam_role.retrieval.id
   policy = jsonencode({
     Version = "2012-10-17"

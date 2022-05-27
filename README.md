@@ -1,4 +1,4 @@
-# carrier-pigeon
+# Playlist Pigeon
 
 TLDR, what I want this to do:
 1. I log into Spotify in the UI, pick a playlist, and hit convert

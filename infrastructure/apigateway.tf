@@ -1,6 +1,6 @@
 resource "aws_api_gateway_rest_api" "apigw" {
   # create api gateway instance
-  name = "carrier-pigeon-api-gateway-${var.env_name}"
+  name = "playlist-pigeon-api-gateway-${var.env_name}"
 }
 
 resource "aws_api_gateway_resource" "v1" {
@@ -108,12 +108,12 @@ resource "aws_api_gateway_stage" "stage" {
   # create stage to manage versions of deployed api
   rest_api_id   = aws_api_gateway_rest_api.apigw.id
   deployment_id = aws_api_gateway_deployment.deployment.id
-  stage_name    = "carrier-pigeon-stage-${var.env_name}"
+  stage_name    = "playlist-pigeon-stage-${var.env_name}"
 }
 
 resource "aws_iam_role" "apigw" {
   # create role for api gateway to assume
-  name = "carrier-pigeon-api-gateway-${var.env_name}"
+  name = "playlist-pigeon-api-gateway-${var.env_name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -130,7 +130,7 @@ resource "aws_iam_role" "apigw" {
 
 resource "aws_iam_role_policy" "apigw_sqs" {
   # give above role access to sqs
-  name = "carrier-pigeon-api-gateway-sqs"
+  name = "playlist-pigeon-api-gateway-sqs"
   role = aws_iam_role.apigw.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -146,7 +146,7 @@ resource "aws_iam_role_policy" "apigw_sqs" {
 
 resource "aws_iam_role_policy" "apigw_lambda" {
   # give above role access to lambda
-  name = "carrier-pigeon-api-gateway-lambda"
+  name = "playlist-pigeon-api-gateway-lambda"
   role = aws_iam_role.apigw.id
   policy = jsonencode({
     Version = "2012-10-17"
