@@ -1,3 +1,2 @@
 apple-music-python
-boto3
 spotipy

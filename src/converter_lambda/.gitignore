@@ -1,0 +1,9 @@
+# ignore everything
+*
+
+# except source files
+!.gitignore
+!env.py
+!main.py
+!music.py
+!requirements*.txt
