@@ -1,0 +1,7 @@
+# ignore everything
+*
+
+# except source files
+!.gitignore
+!main.py
+!requirements*.txt

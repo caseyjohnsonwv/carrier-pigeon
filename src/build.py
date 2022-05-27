@@ -1,8 +1,9 @@
 import logging
 import os
 from pathlib import Path
+from shutil import make_archive
+from subprocess import run
 from time import time
-from zipfile import ZipFile
 
 
 logging.basicConfig(
@@ -22,14 +23,20 @@ def main():
     logging.info(f"Built {c} Lambdas in {tdelta:.1f} seconds")
 
 
-def build_dir(dir:Path):
+def build_dir(dir:Path, req_file:str='requirements-lambda.txt'):
     logging.debug(f"Building {dir.name}")
     start = time()
-    with ZipFile(f"{dir.name}.zip", 'w') as z:
-        for f in dir.iterdir():
-            z.write(f, arcname=f.name)
+    if dir.joinpath(req_file).exists():
+        logging.debug(f"Installing requirements from {req_file} to {dir.name}")
+        command = f"python -m pip install -r {dir.name}/{req_file} --no-cache-dir --upgrade --no-user --target {dir.name}"
+        exec(command)
+    make_archive(dir.name, 'zip', dir.name)
     tdelta = time() - start
     logging.debug(f"Built {dir.name} in {tdelta:.1f} seconds")
+
+
+def exec(cmd:str):
+    return run(list(cmd.split(' ')), check=True)
 
 
 if __name__ == '__main__':
