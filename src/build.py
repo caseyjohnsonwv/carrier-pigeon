@@ -28,7 +28,7 @@ def build_dir(dir:Path, req_file:str='requirements-lambda.txt'):
     start = time()
     if dir.joinpath(req_file).exists():
         logging.debug(f"Installing requirements from {req_file} to {dir.name}")
-        command = f"python -m pip install -r {dir.name}/{req_file} --no-cache-dir --upgrade --no-user --target {dir.name}"
+        command = f"python -m pip install -r {dir.name}/{req_file} --no-cache-dir --upgrade --no-user --platform linux_x86_64 --only-binary=:all: --target {dir.name}"
         exec(command)
     make_archive(dir.name, 'zip', dir.name)
     tdelta = time() - start

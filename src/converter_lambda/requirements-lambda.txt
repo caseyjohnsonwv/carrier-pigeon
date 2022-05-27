@@ -1,2 +1,3 @@
 apple-music-python
+python-dotenv
 spotipy

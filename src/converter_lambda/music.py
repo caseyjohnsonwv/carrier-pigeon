@@ -18,7 +18,7 @@ def init_spotify():
     return sp
 
 
-#initialize apple music auth
+# # initialize apple music auth
 # am = applemusicpy.AppleMusic(
 #     secret_key=env.APPLE_SECRET_KEY,
 #     key_id=env.APPLE_KEY_ID,
@@ -26,12 +26,37 @@ def init_spotify():
 # )
 
 
-def main():
-    sample_url = 'https://open.spotify.com/track/4TlN2LSHn3DzauUe77l0ib?si=3991d682ad554cd6'
-    isrc = isrc_from_track('spotify', sample_url)
-    print(isrc)
-    song = track_from_isrc('spotify', isrc)
-    print(song)
+# payload = {
+#     "playlist_name" : "test playlist",
+#     "source_service" : "spotify",
+#     "target_service" : "apple",
+#     "source_track_list" : [
+#         "https://open.spotify.com/track/5sqHFfmw7MMc1L85BN8802?si=7e44e280239241c3",
+#         "https://open.spotify.com/track/3tYTyAt1q6BFBiGyYVOLhi?si=7b63c232981946ac",
+#         "https://open.spotify.com/track/4wuqlQXpPpEVRhCCyvoe1u?si=0544f6eb71924ae0",
+#     ]
+# }
+
+
+def convert(payload:dict):
+    # actual conversion logic - modifies payload in-place
+    payload['target_track_list'] = []
+    for track_id in payload['source_track_list']:
+        isrc = isrc_from_track(
+            service=str(payload['source_service']).lower(),
+            track_id=track_id
+        )
+        track = track_from_isrc(
+            service=str(payload['target_service']).lower(), 
+            isrc=isrc
+        )
+        if track is None:
+            print(f"Track {track_id} (ISRC: {isrc}) is not available on {str(payload['target_service']).capitalize()}")
+        else:
+            payload['target_track_list'].append(track)
+            
+    return payload
+
 
 
 def isrc_from_track(service:str, track_id:str):
@@ -61,5 +86,6 @@ def track_from_isrc(service:str, isrc:str):
         pass
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     convert(payload)
+#     print(payload)
