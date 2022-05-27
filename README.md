@@ -11,7 +11,7 @@ Obviously this should work in both directions :)
 
 ## Deployment
 
-1. Package the Lambdas into ZIP archives by running `python3 build.py` in `/src`.
+1. Package the Lambdas into ZIP archives by running `python3 build.py` in `/src/backend`.
 2. Create a `terraform.tfvars` in `/infrastructure` with the below variables:
 ```
 env_name   = "dev"

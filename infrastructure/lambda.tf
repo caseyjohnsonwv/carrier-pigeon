@@ -3,7 +3,7 @@
 
 resource "aws_lambda_function" "converter" {
   # create lambda function for actual conversion logic
-  filename      = "${path.root}/../src/converter_lambda.zip"
+  filename      = "${path.root}/../src/backend/converter_lambda.zip"
   function_name = "carrier-pigeon-converter-lambda-${var.env_name}"
   role          = aws_iam_role.converter.arn
   handler       = "main.lambda_handler"
@@ -112,7 +112,7 @@ resource "aws_lambda_permission" "converter" {
 
 resource "aws_lambda_function" "retrieval" {
   # create lambda function for actual conversion logic
-  filename      = "${path.root}/../src/retrieval_lambda.zip"
+  filename      = "${path.root}/../src/backend/retrieval_lambda.zip"
   function_name = "carrier-pigeon-retrieval-lambda-${var.env_name}"
   role          = aws_iam_role.retrieval.arn
   handler       = "main.lambda_handler"
