@@ -5,35 +5,37 @@ from spotipy import CacheFileHandler
 from spotipy.oauth2 import SpotifyClientCredentials
 import env
 
-# initialize spotify auth
-cache_path = None if __name__ == '__main__' else '/tmp/.cache'
-sp_auth_manager = SpotifyClientCredentials(
-    client_id=env.SPOTIFY_CLIENT_ID,
-    client_secret=env.SPOTIFY_CLIENT_SECRET,
-    cache_handler=CacheFileHandler(cache_path=cache_path)
-)
+
 def init_spotify():
+    # initialize spotify auth
+    cache_path = None if __name__ == '__main__' else '/tmp/.cache'
+    sp_auth_manager = SpotifyClientCredentials(
+        client_id=env.SPOTIFY_CLIENT_ID,
+        client_secret=env.SPOTIFY_CLIENT_SECRET,
+        cache_handler=CacheFileHandler(cache_path=cache_path)
+    )
     token = sp_auth_manager.get_access_token(as_dict=False)
     sp = spotipy.Spotify(auth=token)
     return sp
 
 
-# # initialize apple music auth
-# am = applemusicpy.AppleMusic(
-#     secret_key=env.APPLE_SECRET_KEY,
-#     key_id=env.APPLE_KEY_ID,
-#     team_id=env.APPLE_TEAM_ID,
-# )
+def init_apple_music():
+    # initialize apple auth
+    am = applemusicpy.AppleMusic(
+        key_id=env.APPLE_KEY_ID,
+        secret_key=env.APPLE_SECRET_KEY,
+        team_id=env.APPLE_TEAM_ID,
+    )
+    return am
+
 
 
 # payload = {
 #     "playlist_name" : "test playlist",
-#     "source_service" : "spotify",
-#     "target_service" : "apple",
+#     "source_service" : "apple",
+#     "target_service" : "spotify",
 #     "source_track_list" : [
-#         "https://open.spotify.com/track/5sqHFfmw7MMc1L85BN8802?si=7e44e280239241c3",
-#         "https://open.spotify.com/track/3tYTyAt1q6BFBiGyYVOLhi?si=7b63c232981946ac",
-#         "https://open.spotify.com/track/4wuqlQXpPpEVRhCCyvoe1u?si=0544f6eb71924ae0",
+#         "1623855917"
 #     ]
 # }
 
@@ -60,16 +62,18 @@ def convert(payload:dict):
 
 
 def isrc_from_track(service:str, track_id:str):
-    # get isrc for this track from its id / uri / url
+    # get this track's isrc from its id on the selected service
     if service == 'spotify':
         sp = init_spotify()
-        song = sp.track(track_id)
-        if song is not None:
-            return song['external_ids']['isrc']
+        res = sp.track(track_id)
+        if res is not None:
+            return res['external_ids']['isrc']
 
     elif service == 'apple':
-        # TODO
-        pass
+        am = init_apple_music()
+        res = am.song(track_id)
+        if res is not None:
+            return res['data'][0]['attributes']['isrc']
 
 
 def track_from_isrc(service:str, isrc:str):
@@ -82,8 +86,10 @@ def track_from_isrc(service:str, isrc:str):
             return res['tracks']['items'][0]['id']
     
     elif service == 'apple':
-        # TODO
-        pass
+        am = init_apple_music()
+        res = am.songs_by_isrc([isrc])
+        if res is not None:
+            return res['data'][0]['attributes']['url']
 
 
 # if __name__ == '__main__':

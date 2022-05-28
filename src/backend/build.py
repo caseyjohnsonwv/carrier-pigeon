@@ -25,31 +25,46 @@ def main():
     logger.info(f"Built {c} Lambdas in {tdelta:.1f} seconds")
 
 
-def build_dir(dir:Path, req_file:str='requirements-lambda.txt'):
+def build_dir(dir:Path):
     logger.info(f"Building {dir.name}")
     start = time()
-    # create temp dir
+    # create temp dir structure
     temp_dir = Path(os.getcwd()).joinpath(f"{dir.name}_build")
     shutil.rmtree(temp_dir, ignore_errors=True)
     os.mkdir(temp_dir)
-    # install linux requirements
+    # determine if source code or lambda layer
+    req_file ='requirements-lambda.txt'
+    reqs_target = "python/lib/python3.8/site-packages"
     if dir.joinpath(req_file).exists():
-        logger.debug(f"Installing requirements from {dir.name}/{req_file} to {temp_dir}")
-        command = f"python -m pip install -r {dir.name}/{req_file} --no-cache-dir --upgrade --no-user --platform linux_x86_64 --only-binary=:all: --target {temp_dir}"
+        # building lambda layer
+        placeholder = temp_dir
+        for part in reqs_target.split('/'):
+            placeholder = placeholder.joinpath(part)
+            os.mkdir(placeholder)
+        shutil.copyfile(f"{dir.joinpath(req_file)}", f"{temp_dir.joinpath(req_file)}")
+        # install linux requirements
+        logger.debug(f"Using Docker to install requirements from {dir.name}/{req_file}")
+        command = f"docker run --name build -v {temp_dir.as_posix()}:/var/task public.ecr.aws/sam/build-python3.8 /bin/sh -c"
+        nosplit = [f"python -m pip install -r {req_file} --target {reqs_target}; exit"]
+        res = exec(command, nosplit)
+        command = f"docker container rm build"
         exec(command)
-    # copy source code to temp dir, omitting .gitignore'd files
-    files = ' '.join([f"{dir.name}/{f.name}" for f in dir.iterdir()])
-    command = f"git check-ignore {files}"
-    res = exec(command)
-    excludes = set(p.split('/')[-1] for p in res.stdout.decode('utf-8').split('\n') if len(p) > 0)
-    logger.debug(f"Excluding {len(excludes)} .gitignore'd files")
-    if len(excludes) > 0:
-         logger.debug(', '.join(excludes))
-    for f in dir.iterdir():
-        if f.name not in excludes:
-            src = f"{dir.name}/{f.name}"
-            dest = f"{temp_dir.name}/{f.name}"
-            shutil.copyfile(src, dest)
+        # fail if build failed, but after deleting build container
+        res.check_returncode()
+    else:
+        # packaging source code
+        files = ' '.join([f"{dir.name}/{f.name}" for f in dir.iterdir()])
+        command = f"git check-ignore {files}"
+        res = exec(command)
+        excludes = set(p.split('/')[-1] for p in res.stdout.decode('utf-8').split('\n') if len(p) > 0)
+        logger.debug(f"Excluding {len(excludes)} .gitignore'd files")
+        if len(excludes) > 0:
+            logger.debug(', '.join(excludes))
+        for f in dir.iterdir():
+            if f.name not in excludes:
+                src = dir.joinpath(f.name)
+                dest = temp_dir.joinpath(f.name)
+                shutil.copyfile(src, dest)
     # zip and delete temp dir
     shutil.make_archive(dir.name, 'zip', temp_dir.name)
     shutil.rmtree(temp_dir)
@@ -57,8 +72,10 @@ def build_dir(dir:Path, req_file:str='requirements-lambda.txt'):
     logger.info(f"Built {dir.name} in {tdelta:.1f} seconds")
 
 
-def exec(cmd:str):
-    return run(list(cmd.split(' ')), capture_output=True)
+def exec(cmd:str, nosplit:list=[]):
+    command = list(cmd.split(' '))
+    command.extend(nosplit)
+    return run(command, capture_output=True)
 
 
 if __name__ == '__main__':

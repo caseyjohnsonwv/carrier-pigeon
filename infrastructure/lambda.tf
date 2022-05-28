@@ -8,12 +8,29 @@ resource "aws_lambda_function" "converter" {
   role          = aws_iam_role.converter.arn
   handler       = "main.lambda_handler"
   runtime       = "python3.8"
+  timeout       = 20
+
+  layers = [
+    aws_lambda_layer_version.converter_dependencies.arn,
+  ]
 
   environment {
     variables = {
-      s3_bucket_name = "${aws_s3_bucket.playlists.bucket}"
+      S3_BUCKET_NAME        = "${aws_s3_bucket.playlists.bucket}"
+      APPLE_SECRETS_ASM     = "${var.env_name}/playlistpigeon/apple"
+      SPOTIFY_SECRETS_ASM   = "${var.env_name}/playlistpigeon/spotify"
     }
   }
+}
+
+resource "aws_lambda_layer_version" "converter_dependencies" {
+  # create lambda layer with packaged dependencies for converter code
+  filename   = "${path.root}/../src/backend/converter_lambda_dependencies.zip"
+  layer_name = "playlist-pigeon-converter-lambda-dependencies-${var.env_name}"
+
+  compatible_runtimes = [
+    "python3.8"
+  ]
 }
 
 resource "aws_lambda_event_source_mapping" "sqs" {
@@ -93,6 +110,24 @@ resource "aws_iam_role_policy" "converter_s3" {
           "${aws_s3_bucket.playlists.arn}",
           "${aws_s3_bucket.playlists.arn}/*",
         ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "converter_asm" {
+  # create iam policy for converter lambda to read from aws secrets manager
+  name = "playlist-pigeon-converter-lambda-asm-${var.env_name}"
+  role = aws_iam_role.converter.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+        ]
+        Effect = "Allow"
+        Resource = "*"
       }
     ]
   })
