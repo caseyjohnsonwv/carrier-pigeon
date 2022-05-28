@@ -1,0 +1,4 @@
+apple-music-python
+cryptography
+python-dotenv
+spotipy

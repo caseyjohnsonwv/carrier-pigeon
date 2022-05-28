@@ -1,6 +1,6 @@
 resource "aws_s3_bucket" "frontend" {
   # create cors-enabled s3 bucket for frontend code to live in
-  bucket        = "carrier-pigeon-frontend-bucket-${var.env_name}"
+  bucket        = "playlist-pigeon-frontend-bucket-${var.env_name}"
   force_destroy = true
 }
 
@@ -16,6 +16,6 @@ resource "aws_s3_bucket_cors_configuration" "frontend" {
 
 resource "aws_s3_bucket" "playlists" {
   # create s3 bucket for conversion jobs' output jsons
-  bucket        = "carrier-pigeon-playlist-bucket-${var.env_name}"
+  bucket        = "playlist-pigeon-playlist-bucket-${var.env_name}"
   force_destroy = true
 }
