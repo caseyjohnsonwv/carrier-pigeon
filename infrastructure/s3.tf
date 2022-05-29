@@ -19,3 +19,17 @@ resource "aws_s3_bucket" "playlists" {
   bucket        = "playlist-pigeon-playlist-bucket-${var.env_name}"
   force_destroy = true
 }
+
+resource "aws_s3_bucket_lifecycle_configuration" "playlists" {
+  # tell s3 bucket to delete items after 1 day
+  bucket = aws_s3_bucket.playlists.id
+
+  rule {
+    id     = "retention"
+    status = "Enabled"
+
+    expiration {
+      days = 1
+    }
+  }
+}
