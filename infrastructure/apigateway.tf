@@ -3,17 +3,10 @@ resource "aws_api_gateway_rest_api" "apigw" {
   name = "playlist-pigeon-api-gateway-${var.env_name}"
 }
 
-resource "aws_api_gateway_resource" "v1" {
-  # create /v1 under api root
-  rest_api_id = aws_api_gateway_rest_api.apigw.id
-  parent_id   = aws_api_gateway_rest_api.apigw.root_resource_id
-  path_part   = "v1"
-}
-
 resource "aws_api_gateway_resource" "convert" {
   # create /convert under /v1
   rest_api_id = aws_api_gateway_rest_api.apigw.id
-  parent_id   = aws_api_gateway_resource.v1.id
+  parent_id   = aws_api_gateway_rest_api.apigw.root_resource_id
   path_part   = "convert"
 }
 
@@ -108,7 +101,7 @@ resource "aws_api_gateway_stage" "stage" {
   # create stage to manage versions of deployed api
   rest_api_id   = aws_api_gateway_rest_api.apigw.id
   deployment_id = aws_api_gateway_deployment.deployment.id
-  stage_name    = "playlist-pigeon-stage-${var.env_name}"
+  stage_name    = "v1"
 }
 
 resource "aws_iam_role" "apigw" {
