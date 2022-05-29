@@ -1,6 +1,63 @@
+### GENERAL API STUFF ###
+
+
 resource "aws_api_gateway_rest_api" "apigw" {
   # create api gateway instance
   name = "playlist-pigeon-api-gateway-${var.env_name}"
+}
+
+resource "aws_api_gateway_deployment" "deployment" {
+  # create snapshot of gateway config for live deployment
+  rest_api_id = aws_api_gateway_rest_api.apigw.id
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    # post requests
+    aws_api_gateway_integration.post_convert_sqs,
+    aws_api_gateway_method.post_convert,
+    aws_api_gateway_integration_response.post_responses,
+    # get requests
+    aws_api_gateway_integration.get_convert_lambda,
+    aws_api_gateway_method.get_convert,
+  ]
+}
+
+resource "aws_api_gateway_stage" "stage" {
+  # create stage to manage versions of deployed api
+  rest_api_id   = aws_api_gateway_rest_api.apigw.id
+  deployment_id = aws_api_gateway_deployment.deployment.id
+  stage_name    = "v1"
+}
+
+resource "aws_iam_role" "apigw" {
+  # create role for api gateway to assume
+  name = "playlist-pigeon-api-gateway-${var.env_name}"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "apigateway.amazonaws.com",
+        }
+      }
+    ]
+  })
+}
+
+
+### ENDPOINTS ###
+
+
+resource "aws_api_gateway_resource" "auth" {
+  # create /auth under /v1
+  rest_api_id = aws_api_gateway_rest_api.apigw.id
+  parent_id   = aws_api_gateway_rest_api.apigw.root_resource_id
+  path_part   = "auth"
 }
 
 resource "aws_api_gateway_resource" "convert" {
@@ -10,6 +67,22 @@ resource "aws_api_gateway_resource" "convert" {
   path_part   = "convert"
 }
 
+
+### AUTH ENDPOINT - GET ###
+
+
+resource "aws_api_gateway_method" "get_auth" {
+  
+}
+
+resource "aws_api_gateway_integration" "get_auth" {
+
+}
+
+
+### CONVERT ENDPOINT - GET ###
+
+
 resource "aws_api_gateway_method" "get_convert" {
   # create get method for /convert
   rest_api_id   = aws_api_gateway_rest_api.apigw.id
@@ -18,7 +91,7 @@ resource "aws_api_gateway_method" "get_convert" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "lambda" {
+resource "aws_api_gateway_integration" "get_convert_lambda" {
   # tell api gateway how to invoke lambda
   rest_api_id             = aws_api_gateway_rest_api.apigw.id
   resource_id             = aws_api_gateway_resource.convert.id
@@ -27,6 +100,26 @@ resource "aws_api_gateway_integration" "lambda" {
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.retrieval.invoke_arn
 }
+
+resource "aws_iam_role_policy" "apigw_lambda" {
+  # give above role access to lambda
+  name = "playlist-pigeon-api-gateway-lambda"
+  role = aws_iam_role.apigw.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = "${aws_lambda_function.retrieval.arn}"
+      }
+    ]
+  })
+}
+
+
+### CONVERT ENDPOINT - POST ###
+
 
 resource "aws_api_gateway_method" "post_convert" {
   # create post method for /convert
@@ -59,7 +152,7 @@ resource "aws_api_gateway_integration_response" "post_responses" {
   ]
 }
 
-resource "aws_api_gateway_integration" "sqs" {
+resource "aws_api_gateway_integration" "post_convert_sqs" {
   # tell api gateway how to push to sqs
   rest_api_id             = aws_api_gateway_rest_api.apigw.id
   resource_id             = aws_api_gateway_resource.convert.id
@@ -78,49 +171,6 @@ resource "aws_api_gateway_integration" "sqs" {
   }
 }
 
-resource "aws_api_gateway_deployment" "deployment" {
-  # create snapshot of gateway config for live deployment
-  rest_api_id = aws_api_gateway_rest_api.apigw.id
-
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  depends_on = [
-    # post requests
-    aws_api_gateway_integration.sqs,
-    aws_api_gateway_method.post_convert,
-    aws_api_gateway_integration_response.post_responses,
-    # get requests
-    aws_api_gateway_integration.lambda,
-    aws_api_gateway_method.get_convert,
-  ]
-}
-
-resource "aws_api_gateway_stage" "stage" {
-  # create stage to manage versions of deployed api
-  rest_api_id   = aws_api_gateway_rest_api.apigw.id
-  deployment_id = aws_api_gateway_deployment.deployment.id
-  stage_name    = "v1"
-}
-
-resource "aws_iam_role" "apigw" {
-  # create role for api gateway to assume
-  name = "playlist-pigeon-api-gateway-${var.env_name}"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "apigateway.amazonaws.com",
-        }
-      }
-    ]
-  })
-}
-
 resource "aws_iam_role_policy" "apigw_sqs" {
   # give above role access to sqs
   name = "playlist-pigeon-api-gateway-sqs"
@@ -132,22 +182,6 @@ resource "aws_iam_role_policy" "apigw_sqs" {
         Effect   = "Allow"
         Action   = "sqs:SendMessage"
         Resource = "${aws_sqs_queue.job_queue.arn}"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy" "apigw_lambda" {
-  # give above role access to lambda
-  name = "playlist-pigeon-api-gateway-lambda"
-  role = aws_iam_role.apigw.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = "lambda:InvokeFunction"
-        Resource = "${aws_lambda_function.retrieval.arn}"
       }
     ]
   })

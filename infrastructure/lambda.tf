@@ -11,7 +11,7 @@ resource "aws_lambda_function" "converter" {
   timeout       = 20
 
   layers = [
-    aws_lambda_layer_version.converter_dependencies.arn,
+    aws_lambda_layer_version.dependencies.arn,
   ]
 
   environment {
@@ -23,10 +23,10 @@ resource "aws_lambda_function" "converter" {
   }
 }
 
-resource "aws_lambda_layer_version" "converter_dependencies" {
+resource "aws_lambda_layer_version" "dependencies" {
   # create lambda layer with packaged dependencies for converter code
-  filename   = "${path.root}/../src/backend/converter_lambda_dependencies.zip"
-  layer_name = "playlist-pigeon-converter-lambda-dependencies-${var.env_name}"
+  filename   = "${path.root}/../src/backend/lambda_dependencies.zip"
+  layer_name = "playlist-pigeon-lambda-dependencies-${var.env_name}"
 
   compatible_runtimes = [
     "python3.8"

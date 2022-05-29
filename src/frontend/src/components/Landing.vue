@@ -6,10 +6,10 @@
       <p>Because sharing playlists between Apple Music and Spotify... is a lot like sending a carrier pigeon.</p>
     </div>
     <div class="user-form">
-      <form action="submit" method="post" target="_blank">
-        <input type="url" name="link" size="60" placeholder="Paste your playlist link here!">
+      <form>
+        <input v-model="playlist_link" type="url" size="60" placeholder="Paste your playlist link here!">
       </form>
-      <button type="submit" id="convert-button">Convert</button>
+      <button @click="get_auth">Convert</button>
     </div>
     <div class="info">
       <a href="https://github.com/caseyjohnsonwv/playlist-pigeon/">Project source code</a>
@@ -18,16 +18,48 @@
 </template>
 
 <script>
+const querystring = require('querystring')
+var Spotify = require('spotify-web-api-js')
+
 export default {
   name: 'Landing',
-  props: {
-    username: String
+  data() {
+    return {
+      playlist_link: "",
+    };
   },
   methods: {
-    submit : function() {
-
+    get_auth(event) {
+      if (this.playlist_link.length > 0) {
+        this.$storage.setStorageSync("playlist_link", this.playlist_link)
+        if (this.playlist_link.includes("spotify")) {
+          window.location.href = 'https://accounts.spotify.com/authorize?' +
+            querystring.stringify({
+              response_type: 'code',
+              client_id: "d614ade3b49f4fdc822842b3fabc4db0",
+              scope: "playlist-read-private, playlist-read-collaborative",
+              redirect_uri: "http://localhost:8080/",
+            });
+        }
+        else if (this.playlist_link.includes("apple")) {
+          // TODO
+        }
+        else {
+          // not valid, do some css magic
+        }
+      }
+    },
+    callback() {
+      code = this.$route.query.code
+      if (code != null) {
+        // POST TO API FOR OAUTH COMPLETION
+        // CALL CONVERSION LOGIC
+      }
+    },
+    convert() {
+      // TODO
     }
-  }
+  },
 }
 </script>
 
@@ -72,24 +104,28 @@ input {
   text-align: center;
 }
 
+input:hover {
+  color: #160c3bdd;
+}
+
 ::placeholder {
   color: #160c3b;
   opacity: 80%;
 }
 
 button {
-  background-color: white;
-  border: 1px solid #160c3b;
+  background-color: #160c3b;
+  border: 1px solid white;
   border-radius: 0.5em;
+  color: #e6e6fa;
   font-family: inherit;
-  font-weight: bold;
   height: 4em;
   width: 12em;
 }
 
 button:hover {
   cursor: pointer;
-  background-color: rgb(245, 245, 245);
+  background-color: #160c3bdd;
 }
 
 .info {
@@ -99,5 +135,9 @@ button:hover {
 
 a {
   color: #160c3b;
+}
+
+a:hover {
+  color: #160c3bdd;
 }
 </style>
