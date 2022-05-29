@@ -19,7 +19,6 @@
 
 <script>
 const querystring = require('querystring')
-var Spotify = require('spotify-web-api-js')
 
 export default {
   name: 'Landing',
@@ -39,7 +38,7 @@ export default {
               response_type: 'code',
               client_id: "d614ade3b49f4fdc822842b3fabc4db0",
               scope: "playlist-read-private, playlist-read-collaborative",
-              redirect_uri: "http://localhost:8080/",
+              redirect_uri: location.href + "callback",
             });
         }
         else if (this.playlist_link.includes("apple")) {
@@ -50,25 +49,7 @@ export default {
         }
       }
     },
-    callback() {
-      var service = this.$storage.getStorageSync("service")
-      var code = this.$route.query.code
-      if (code != null) {
-        var data = {"service":service, "code":code}
-        // POST TO API FOR OAUTH COMPLETION
-        this.axios.post(this.$api_url+"/auth", data).then((res) => {
-          console.log(res.data.token)
-        });
-        // CALL CONVERSION LOGIC
-      }
-    },
-    convert() {
-      // TODO
-    }
   },
-  beforeMount() {
-    this.callback();
-  }
 }
 </script>
 

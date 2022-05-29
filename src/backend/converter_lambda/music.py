@@ -43,17 +43,25 @@ def init_apple_music():
 def convert(payload:dict):
     # actual conversion logic - modifies payload in-place
     payload['target_track_list'] = []
+    source_service=str(payload['source_service']).lower()
+    target_service=str(payload['target_service']).lower()
+
     for track_id in payload['source_track_list']:
-        isrc = isrc_from_track(
-            service=str(payload['source_service']).lower(),
-            track_id=track_id
-        )
+        try:
+            isrc = isrc_from_track(
+                service=source_service,
+                track_id=track_id
+            )
+        except Exception:
+            print(f"Could not find track {track_id} on {source_service}")
+            continue
+
         track = track_from_isrc(
-            service=str(payload['target_service']).lower(), 
+            service=target_service, 
             isrc=isrc
         )
         if track is None:
-            print(f"Track {track_id} (ISRC: {isrc}) is not available on {str(payload['target_service']).capitalize()}")
+            print(f"Track {track_id} (ISRC: {isrc}) is not available on {target_service}")
         else:
             payload['target_track_list'].append(track)
             

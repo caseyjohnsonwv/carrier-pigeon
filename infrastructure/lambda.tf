@@ -208,7 +208,7 @@ resource "aws_iam_role_policy" "retrieval_s3" {
     Statement = [
       {
         Action = [
-          "s3:GetObject",
+          "s3:*",
         ]
         Effect = "Allow"
         Resource = [

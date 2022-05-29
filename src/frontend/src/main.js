@@ -11,4 +11,4 @@ app.use(router)
 .use(Vue3Storage, {namespace: "pp_", storage: StorageType.Session})
 .mount('#app')
 
-app.config.globalProperties.$api_url = "https://b2yp1tvf81.execute-api.us-east-2.amazonaws.com/v1"
+app.config.globalProperties.$api_url = "https://9l9b1qt9pg.execute-api.us-east-2.amazonaws.com/v1"

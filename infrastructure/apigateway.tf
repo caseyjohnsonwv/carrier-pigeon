@@ -168,6 +168,10 @@ resource "aws_api_gateway_method_response" "post_convert_codes" {
   resource_id = aws_api_gateway_resource.convert.id
   http_method = aws_api_gateway_method.post_convert.http_method
   status_code = each.value
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true,
+  }
 }
 
 resource "aws_api_gateway_integration_response" "post_convert_responses" {
@@ -178,6 +182,10 @@ resource "aws_api_gateway_integration_response" "post_convert_responses" {
   http_method       = each.value.http_method
   status_code       = each.value.status_code
   selection_pattern = "${substr(each.value.status_code, 0, 1)}[0-9]{2}"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
 
   depends_on = [
     aws_api_gateway_integration.post_convert_sqs,
