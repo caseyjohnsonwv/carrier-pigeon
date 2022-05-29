@@ -2,9 +2,9 @@ from os import getenv
 
 
 # lambda env vars
-S3_BUCKET_NAME = getenv('S3_BUCKET_NAME')
 APPLE_SECRETS_ASM = getenv('APPLE_SECRETS_ASM')
 SPOTIFY_SECRETS_ASM = getenv('SPOTIFY_SECRETS_ASM')
+OAUTH_REDIRECT_URI = getenv('OAUTH_REDIRECT_URI')
 
 
 # local env vars

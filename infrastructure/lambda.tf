@@ -1,3 +1,17 @@
+### DEPENDENCIES ###
+
+
+resource "aws_lambda_layer_version" "dependencies" {
+  # create lambda layer with packaged dependencies
+  filename   = "${path.root}/../src/backend/dependencies.zip"
+  layer_name = "playlist-pigeon-lambda-dependencies-${var.env_name}"
+
+  compatible_runtimes = [
+    "python3.8"
+  ]
+}
+
+
 ### CONVERTER LAMBDA ###
 
 
@@ -16,21 +30,11 @@ resource "aws_lambda_function" "converter" {
 
   environment {
     variables = {
-      S3_BUCKET_NAME        = "${aws_s3_bucket.playlists.bucket}"
-      APPLE_SECRETS_ASM     = "${var.env_name}/playlistpigeon/apple"
-      SPOTIFY_SECRETS_ASM   = "${var.env_name}/playlistpigeon/spotify"
+      S3_BUCKET_NAME      = "${aws_s3_bucket.playlists.bucket}"
+      APPLE_SECRETS_ASM   = "${var.env_name}/playlistpigeon/apple"
+      SPOTIFY_SECRETS_ASM = "${var.env_name}/playlistpigeon/spotify"
     }
   }
-}
-
-resource "aws_lambda_layer_version" "dependencies" {
-  # create lambda layer with packaged dependencies for converter code
-  filename   = "${path.root}/../src/backend/lambda_dependencies.zip"
-  layer_name = "playlist-pigeon-lambda-dependencies-${var.env_name}"
-
-  compatible_runtimes = [
-    "python3.8"
-  ]
 }
 
 resource "aws_lambda_event_source_mapping" "sqs" {
@@ -126,7 +130,7 @@ resource "aws_iam_role_policy" "converter_asm" {
         Action = [
           "secretsmanager:GetSecretValue",
         ]
-        Effect = "Allow"
+        Effect   = "Allow"
         Resource = "*"
       }
     ]
@@ -222,4 +226,91 @@ resource "aws_lambda_permission" "retrieval" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.retrieval.function_name
   principal     = "apigateway.amazonaws.com"
+}
+
+
+### AUTH LAMBDA ###
+
+
+resource "aws_lambda_function" "auth" {
+  # create lambda function for actual conversion logic
+  filename      = "${path.root}/../src/backend/auth_lambda.zip"
+  function_name = "playlist-pigeon-auth-lambda-${var.env_name}"
+  role          = aws_iam_role.converter.arn
+  handler       = "main.lambda_handler"
+  runtime       = "python3.8"
+  timeout       = 3
+
+  layers = [
+    aws_lambda_layer_version.dependencies.arn,
+  ]
+
+  environment {
+    variables = {
+      APPLE_SECRETS_ASM   = "${var.env_name}/playlistpigeon/apple"
+      SPOTIFY_SECRETS_ASM = "${var.env_name}/playlistpigeon/spotify"
+      OAUTH_REDIRECT_URI  = "${var.oauth_redirect_uri}"
+    }
+  }
+}
+
+resource "aws_lambda_permission" "auth" {
+  # tell auth lambda it can be invoked by api gateway
+  statement_id  = "AllowAPIGatewayInvocation"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.auth.function_name
+  principal     = "apigateway.amazonaws.com"
+}
+
+resource "aws_iam_role" "auth" {
+  # create iam role for auth lambda to assume
+  name = "playlist-pigeon-auth-lambda-${var.env_name}"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "auth_logs" {
+  # create iam policy for auth lambda to write to logs
+  name = "playlist-pigeon-auth-lambda-logs-${var.env_name}"
+  role = aws_iam_role.auth.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "logs:*",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "auth_asm" {
+  # create iam policy for auth lambda to read from aws secrets manager
+  name = "playlist-pigeon-auth-lambda-asm-${var.env_name}"
+  role = aws_iam_role.auth.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
 }
