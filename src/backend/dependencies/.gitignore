@@ -1,0 +1,6 @@
+# ignore everything
+*
+
+# except source files
+!.gitignore
+!requirements*.txt

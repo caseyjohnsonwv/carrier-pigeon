@@ -33,6 +33,7 @@ export default {
       if (this.playlist_link.length > 0) {
         this.$storage.setStorageSync("playlist_link", this.playlist_link)
         if (this.playlist_link.includes("spotify")) {
+          this.$storage.setStorageSync("service", "spotify");
           window.location.href = 'https://accounts.spotify.com/authorize?' +
             querystring.stringify({
               response_type: 'code',
@@ -50,9 +51,14 @@ export default {
       }
     },
     callback() {
-      code = this.$route.query.code
+      var service = this.$storage.getStorageSync("service")
+      var code = this.$route.query.code
       if (code != null) {
+        var data = {"service":service, "code":code}
         // POST TO API FOR OAUTH COMPLETION
+        this.axios.post(this.$api_url+"/auth", data).then((res) => {
+          console.log(res.data.token)
+        });
         // CALL CONVERSION LOGIC
       }
     },
@@ -60,6 +66,9 @@ export default {
       // TODO
     }
   },
+  beforeMount() {
+    this.callback();
+  }
 }
 </script>
 

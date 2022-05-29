@@ -236,7 +236,7 @@ resource "aws_lambda_function" "auth" {
   # create lambda function for actual conversion logic
   filename      = "${path.root}/../src/backend/auth_lambda.zip"
   function_name = "playlist-pigeon-auth-lambda-${var.env_name}"
-  role          = aws_iam_role.converter.arn
+  role          = aws_iam_role.auth.arn
   handler       = "main.lambda_handler"
   runtime       = "python3.8"
   timeout       = 3

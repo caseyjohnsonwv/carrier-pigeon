@@ -24,4 +24,7 @@ def lambda_handler(event=None, context=None):
     return {
         'statusCode' : 200,
         'body' : json.dumps(contents),
+        'headers' : {
+            'Access-Control-Allow-Origin' : '*',
+        }
     }

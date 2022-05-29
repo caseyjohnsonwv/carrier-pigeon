@@ -52,6 +52,27 @@ resource "aws_iam_role" "apigw" {
   })
 }
 
+resource "aws_iam_role_policy" "apigw_lambda" {
+  # give above role access to lambda and sqs
+  name = "playlist-pigeon-api-gateway-lambda-${var.env_name}"
+  role = aws_iam_role.apigw.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "sqs:SendMessage"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 
 ### ENDPOINTS ###
 
@@ -63,11 +84,25 @@ resource "aws_api_gateway_resource" "auth" {
   path_part   = "auth"
 }
 
+module "auth_endpoint_cors" {
+  # enable cors on /auth
+  source          = "squidfunk/api-gateway-enable-cors/aws"
+  api_id          = aws_api_gateway_rest_api.apigw.id
+  api_resource_id = aws_api_gateway_resource.auth.id
+}
+
 resource "aws_api_gateway_resource" "convert" {
   # create /convert under /v1
   rest_api_id = aws_api_gateway_rest_api.apigw.id
   parent_id   = aws_api_gateway_rest_api.apigw.root_resource_id
   path_part   = "convert"
+}
+
+module "convert_endpoint_cors" {
+  # enable cors on /convert
+  source          = "squidfunk/api-gateway-enable-cors/aws"
+  api_id          = aws_api_gateway_rest_api.apigw.id
+  api_resource_id = aws_api_gateway_resource.convert.id
 }
 
 
@@ -92,22 +127,6 @@ resource "aws_api_gateway_integration" "post_auth_lambda" {
   uri                     = aws_lambda_function.auth.invoke_arn
 }
 
-resource "aws_iam_role_policy" "apigw_auth_lambda" {
-  # give above role access to lambda
-  name = "playlist-pigeon-api-gateway-auth-lambda-${var.env_name}"
-  role = aws_iam_role.apigw.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = "lambda:InvokeFunction"
-        Resource = "${aws_lambda_function.auth.arn}"
-      }
-    ]
-  })
-}
-
 
 ### CONVERT ENDPOINT - GET ###
 
@@ -128,22 +147,6 @@ resource "aws_api_gateway_integration" "get_convert_lambda" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.retrieval.invoke_arn
-}
-
-resource "aws_iam_role_policy" "apigw_retrieval_lambda" {
-  # give above role access to lambda
-  name = "playlist-pigeon-api-gateway-retrieval-lambda-${var.env_name}"
-  role = aws_iam_role.apigw.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = "lambda:InvokeFunction"
-        Resource = "${aws_lambda_function.retrieval.arn}"
-      }
-    ]
-  })
 }
 
 
@@ -198,20 +201,4 @@ resource "aws_api_gateway_integration" "post_convert_sqs" {
   request_templates = {
     "application/json" = "Action=SendMessage&MessageBody=$input.body"
   }
-}
-
-resource "aws_iam_role_policy" "apigw_sqs" {
-  # give above role access to sqs
-  name = "playlist-pigeon-api-gateway-sqs-${var.env_name}"
-  role = aws_iam_role.apigw.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = "sqs:SendMessage"
-        Resource = "${aws_sqs_queue.job_queue.arn}"
-      }
-    ]
-  })
 }
