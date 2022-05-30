@@ -30,6 +30,8 @@ export default {
   methods: {
     get_auth(event) {
       if (this.playlist_link.length > 0) {
+        this.$storage.removeStorageSync("playlist_link")
+        this.$storage.removeStorageSync("shareable_link")
         this.$storage.setStorageSync("playlist_link", this.playlist_link)
         if (this.playlist_link.includes("spotify")) {
           this.$storage.setStorageSync("service", "spotify");
@@ -129,5 +131,6 @@ a {
 
 a:hover {
   color: #160c3bdd;
+  cursor: pointer;
 }
 </style>

@@ -1,18 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LandingView from '../views/LandingView.vue'
 import CallbackView from '../views/CallbackView.vue'
+import LandingView from '../views/LandingView.vue'
+import ShareView from '../views/ShareView.vue'
 
 const routes = [
+  {
+    path: '/callback',
+    name: 'callback',
+    component: CallbackView
+  },
   {
     path: '/',
     name: 'landing',
     component: LandingView
   },
   {
-    path: '/callback',
-    name: 'callback',
-    component: CallbackView
-  }
+    path: '/share/:job_id',
+    name: 'share',
+    component: ShareView
+  },
 ]
 
 const router = createRouter({

@@ -2,6 +2,7 @@
 </template>
 
 <script>
+import router from '@/router';
 import SpotifyWebApi from 'spotify-web-api-js';
 
 export default {
@@ -69,11 +70,10 @@ export default {
             return this.axios.post(this.$api_url + "/convert", payload);
           })
         
-        // SET SHAREABLE LINK IN VUE STATE
+        // SET JOB ID IN VUE STATE
           .then((res) => {
             var job_id = res.data.SendMessageResponse.SendMessageResult.MessageId
-            var shareable_link = location.host + "/share/" + job_id;
-            this.$storage.setStorageSync("shareable_link", shareable_link);
+            this.$storage.setStorageSync("job_id", job_id);
           })
       }
       else if (this.playlist_link.includes("apple")) {
@@ -84,9 +84,13 @@ export default {
       }      
     }
   },
-  beforeMount() {
+  created() {
+    setInterval(() => {
+      if (this.$storage.getStorageSync("job_id") != null) {
+        router.push('/share/' + this.$storage.getStorageSync("job_id"))
+      }
+    }, 1000)
     this.callback();
-    this.$router.push('/')
   }
 }
 </script>
